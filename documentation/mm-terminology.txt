@@ -1,0 +1,64 @@
+Address Space Types [1]
+-------------------
+WRT linux memroy address types [2]:
+
+  "Different kernel functions require different types of addresses. It
+  would be nice if there were different C types defined, so that the
+  required address types were explicit, but we have no such luck."
+
+This makes understanding the code very difficult. Perhaps at some
+point someone should do something about this.
+
+User Virtual Addresses (UVAs)
+-----------------------------
+Are 32 or 64 bit depending on the architecture. Each process
+(task_struct) object has its own virtual address space allocated by
+the kernel when the task is started.
+
+Bus Addresses (BAs)
+-------------------
+* exist between the bus and memory locations
+* are often the same as physical addresses
+* if an IOMMU is present on the system, it will remap bus addresses
+  to physical addresses
+  * a driver needs to explicitly program the use of the IOMMU
+  * IOMMU is able to make non-continguos memory appear continguos
+
+Physical Addresses (PAs)
+------------------------
+These are the addresses used by the processor to perform load/
+store operations.
+
+Kernel Logical Addresses (KLAs)
+-------------------------------
+* normal address space of the kernel
+* mapping of main memory
+* often treated like physical addresses
+* use architecture native pointer size
+* often stored in variables such as unsigned long or void *
+* a call to kmalloc() returns a KLA
+* typically a one-2-one mapping to physical memory
+* a call to __pa(KLA) returns the physical memory address
+
+Kernel Virtual Addresses (KVAs)
+-------------------------------
+* similar to KLAs
+* mapping from kernel space address to a physcial address in
+  most cases
+* All KLAs are KVAs, BUT
+* not all KVAs are KLAs
+* a call to vmalloc() may return a KVA without a physical mapping
+* a call to __va(PA) returns a KVA
+  * low memory only
+
+High vs Low Memory
+------------------
+* LOW a mapping of the physical address space, typically all
+  memory is low memory
+* HIGH is a set of addresses to memory which has not been mapped
+  to a physical address
+
+References
+----------
+[1] 'Linux Device Drivers' 3rd ed., Corbet et. al.
+[2] 'Linux Device Drivers', 3rd ed., p 415.

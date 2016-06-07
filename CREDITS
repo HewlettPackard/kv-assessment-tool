@@ -1,0 +1,14 @@
+	This is a credits-file of people that have contributed to the
+	kvtool project.  It is sorted by name and formatted to allow
+	easy grepping and beautification by scripts.  The fields are:
+	name (N), email (E), web-address (W), PGP key ID and
+	fingerprint (P), description (D), and snail-mail address (S).
+
+----------
+M: David Roth
+E: r3mu5@fastmail.com
+D: test framework, mmsearch kernel module
+
+M: Justin Vreeland
+E: jvreeland@hpe.com
+D: mmsearch kernel module

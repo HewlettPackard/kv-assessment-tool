@@ -1,0 +1,41 @@
+Physical Address Space Partitioning
+-----------------------------------
+* all system memory is on a per page basis
+* page sizes are architecture dependent
+* asm/page.h
+  * defines page sizes for a particular architecture
+* a virtual or physical memory address is divided into
+  a page frame number (PFN) and an offset within the page
+  * the offset is a function of the page size which
+    differs among architectures
+    * an x86-64 page size is 2^12 (4096)
+    * to derive the PFN you right shift the memory addres
+      PAGE_SIZE
+* pages of memory are indexed by page tables
+* pages represent sets of data
+* page frames store the physical address of the page
+
+page APIs
+---------
+* virt_to_page(KLA)
+  * returns a pointer to a page struct
+* pfn_page(PFN)
+  * returns a a pointer to a page struct
+* page_address(struct page *)
+  * returns the KVA for the page
+* kmap(struct page *)
+  * returns the KVA
+
+struct page
+-----------
+* virtual field points to the KVA of the page
+* flags field describes the page's current state
+
+process virtual memory space
+----------------------------
+* each process has its own page global directory
+* and its own set of pages
+* register cr3 stores the pointer to the pgd for the process
+* register cr2 stores the address of a faulting page
+
+

@@ -1,0 +1,152 @@
+overview
+--------
+
+The following is an analysis of the access_process_vm() code path
+leveraged by the mmsearch kernel module for the purpose of copying the
+heap memory of any process running on the system to a temporary
+buffer.
+
+Legend:
+
+--> should be read as 'calls'
+
+[mm/memory.c] access_process_vm()
+              |
+               --> get_user_pages() 
+
+    discussion: [mm/gup.c] get_user_pages() is an exported kernel
+    function heavily used by Linux kernel drivers. For a discussion of
+    functions which copy from kernel memory to user space memory and
+    user space to the kernel see: 'Understanding the Linux Virtual
+    Memory Manager', Gorman, 2004 section 4.7.
+
+    if we get a positive return value from get_user_pages(), then:
+
+    |
+     --> kmap(page) is called and the struct page retrieved from the
+         previous call to get_user_pages()
+
+    discussion: as shown below kmap has been modified by XPFO kernel
+    patch.
+
+void *kmap(struct page *page)
+ {
++	void *kaddr;
++
+ 	might_sleep();
+-	if (!PageHighMem(page))
+-		return page_address(page);
++	if (!PageHighMem(page)) {
++		kaddr = page_address(page);
++		xpfo_ctl(XPFO_CMD_KMAP, kaddr, page, 1);
++		return kaddr;
++	}
+ 	return kmap_high(page);
+
+    discussion: if the page is not mapped from high memory then
+    xpfo_ctl(XPFO_CMD_KMAP, kaddr, page, 1) is called. The KMAP
+    control function is described below.
+
+CMD_KMAP operation:
+
++		/* page frame (needs to be) mapped to kernel space */
++		case XPFO_CMD_KMAP:
++			/* TODO: remove (sanity check) */	
++			BUG_ON(num != 1);
++				
++			/* the page is allocated to kernel space */
++			if (PageKernel(pg))
++				/* done; fast path */
++				break;
++			
++			/* get the per-page frame lock */
++			xpfo_lock(pg);
++
++			/* the page was previously allocated to user space */
++			if (xpfo_kmcnt_get(pg) && PageUser(pg))
++				/* map it to kernel space */
++				set_kpte(pg, __kaddr, __pgprot(__PAGE_KERNEL));
++					
++			/* no TLB update */
++
++			/* release the per-page frame lock */
++			xpfo_unlock(pg);
++			
++			/* done */
++			break;
++
+ }
+
+    discussion: XPFO on this path, calls set_kpte(pg, __kaddr,
+    __pgprot(__PAGE_KERNEL)) which changes page ownership from user
+    space to kernel.
+
+    |
+     --> copy_from_user_page()
+
+    discussion: this copies the process page to a user supplied
+    buffer. It is this buffer that mmsearch walks to find data of
+    interest.
+
+    |
+     --> kunmap(page) is called
+
+@@ -16,8 +21,10 @@ void kunmap(struct page *page)
+ {
+ 	if (in_interrupt())
+ 		BUG();
+-	if (!PageHighMem(page))
++	if (!PageHighMem(page)) {
++		xpfo_ctl(XPFO_CMD_KUNMAP, page_address(page), page, 1);
+ 		return;
++	}
+ 	kunmap_high(page);
+ }
+ EXPORT_SYMBOL(kunmap);
+
+
++		/* page frame (needs to be) unmaped from kernel space */
++		case XPFO_CMD_KUNMAP:
++			/* TODO: remove (sanity check) */
++			BUG_ON(num != 1);
++			
++			/* the page is allocated to kernel space */
++			if (PageKernel(pg))
++				/* done; fast path */
++				break;
++			
++			/* get the per-page frame lock */
++			xpfo_lock(pg);
++
++			/* the page frame is to be allocated to user space */
++			if (xpfo_kmcnt_put(pg) 	&&
++				(PageUserFp(pg) || PageUser(pg))) { 
++
++				/* unmap it from kernel space */
++				set_kpte(pg, __kaddr, __pgprot(0));
++				
++				/* local TLB update */
++				__flush_tlb_one(__kaddr);
++				
++				/* mark it accordingly (user) */
++				__SetPageUser(pg);
++			}
++			
++			/* release the per-page frame lock */
++			xpfo_unlock(pg);
++			
++			/* done */
++			break;
+
+    discussion: XFPO calls set_kpte(pg, __kaddr, __pgprot(0)) which
+    unmaps the kernel ownership of the page, forcing a page fault for
+    any who attempt to access it directly.
+
+
+summary
+-------
+
+kmap() enables the copy operation from the process's heap space to the
+kernel buffer and kunmap() restores the XPFO protections. In this way
+the kernel is able to copy memory from user space into a kernel
+buffer.

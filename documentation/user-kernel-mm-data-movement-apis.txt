@@ -1,0 +1,26 @@
+overview
+--------
+
+A firewall between process user space memory and the kernel is
+impractical.
+
+The kernel supports a number of data movement APIs explicitly to copy
+data from user space to kernel space and kernel space to user
+space. As well as routines to clear process memory areas.
+
+These routines are used by many drivers.
+
+E. g. get_user(), put_user(), clear_user(). copy_to_user(),
+copy_from_user(), strlen_user(), strncpy_from_user(). All of which are
+required for the normal operation of the kernel as it manages and
+responds to process management system calls.
+
+
+See:
+	~/arch/x86/include/asm/uaccess_32.h
+	~/arch/x86/include/asm/uaccess_64.h
+
+and:
+	mm/memory.c     // copy routines
+	mm/gup.c	//get user page...
+

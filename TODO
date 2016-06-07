@@ -1,0 +1,68 @@
+* dsr_01152015 
+
+  - kernel module loading via finit_module() via syscall()
+  - DONE
+
+* dsr_01152015 (outplan)
+
+  - do a virtual to physical mapping of addresses to prevent crashes
+    from occuring.
+
+  - not necessary. Handled by access_process_vm()
+
+* dsr_01232105
+
+  - add logic to remove module via module_delete() via syscall()
+  - DONE
+
+* dsr_01232105
+
+  - define test cases
+
+* dsr_01232105
+
+  - investigate implications of preventing kernel calls to get_user_pages()
+  - DONE
+
+* dsr_01232105
+
+  - document how to run mmsearch against the cred-card-app
+  - DONE
+
+* dsr_01232105
+
+  - code fixup on logic to read contents of pmap. Reduce the amount
+    of output and make it more meaningful.
+  - DONE
+
+* dsr_01232105
+
+  - add opensource licensing
+  - DONE
+
+* dsr_03042016
+
+  - accept a container PID and map it to its kernel PID. Current
+    workaround is to use --pid=host on the docker run commandline.
+
+* dsr_06072016
+
+  - replace current build with autotools
+
+* dsr_06072016
+
+  - run mmsearch as a kernel thread rather than in process
+
+* dsr_06072016
+
+  - maybe the framework should be in python rather than C
+
+* dsr_06072016
+
+  - docment mmsearch internals and the issues which it is intended to
+    demonstrate
+
+
+
+
+
