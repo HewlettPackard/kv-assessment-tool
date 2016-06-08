@@ -1,0 +1,17 @@
+*~
+*.o
+*.a
+*.c.*
+\#*
+kworker
+card-processor
+cscope*
+credit*
+*.ko
+.test*
+.tmp*
+*.mod.*
+Module*
+modules*
+\.mmsearch*
+
