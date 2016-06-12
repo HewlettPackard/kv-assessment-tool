@@ -1,4 +1,4 @@
-/*
+ /*
  * (c) Copyright 2016 Hewlett Packard Enterprise Development LP This
  * program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -31,8 +31,20 @@
 #endif
 
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("HPE Linux Kernel Development Team");
+MODULE_AUTHOR("david roth - justin vreeland");
 MODULE_DESCRIPTION("Scans a process's heap memory regions");
+
+
+struct search_result {
+	int offset;
+	char buf[4096];
+};
+
+static struct search_result result;
+
+#define NO_DATA_FOUND "No data found"
+#define NO_DATA_BUF_LEN 32
+#define SEARCH_RESULT_BUF_LEN 64
 
 #ifdef CONFIG_XPFO
 typedef enum {
@@ -47,7 +59,6 @@ static inline int PageUserFp(struct page *page)
 {
 	return test_bit(PG_user_fp, &page->xpfo_flags);
 }
-
 
 /* get the value of `PG_user' */
 static inline int PageUser(struct page *page)
@@ -327,6 +338,12 @@ attack_run(struct vm_area_struct *vma,
 	rcode = bad_address(kv_addr_p);
 	if (rcode == 0) {
 		p = (char*)kv_addr_p;
+		//capture result
+		result.offset += snprintf(result.buf+result.offset, 
+					  SEARCH_RESULT_BUF_LEN,
+					  "%s\n", 
+					  p);
+
 		pr_info("%s: dereferencing address(%p): %s\n", __func__,
 			kv_addr_p,
 			p);
@@ -349,6 +366,11 @@ buffer_search(struct vm_area_struct *vma,
 	if (offset > 0) {
 		attack_run(vma, ts, offset);
 	} else {
+		result.offset += snprintf(result.buf+result.offset, 
+					  NO_DATA_BUF_LEN,
+					  "%s \n", 
+					  NO_DATA_FOUND);
+
 		pr_info("%s: no data found\n", __func__);
 	}
 }
@@ -402,8 +424,8 @@ process_vm_area_list(struct task_struct* ts)
 			
 			/*
 			  the 'size' return value here is
-			  ambiguous. Could be number of bytes copied
-			  or an error code. Regardless, if the return
+			  ambiguous. could be number of bytes copied
+			  or an error code. regardless, if the return
 			  value is zero, no need to examine the
 			  buffer.
 			*/
@@ -415,6 +437,17 @@ process_vm_area_list(struct task_struct* ts)
 	next:
 		vma = vma->vm_next;		
 	}  /* while loop end */
+}
+
+static ssize_t
+mmsearch_pid_show(struct kobject *kobj, 
+		  struct kobj_attribute *attr,
+		  char *buf)
+{
+	pr_info("%s: request for search buffer data\n", __func__);
+	memcpy(buf, result.buf, result.offset);
+
+	return result.offset;
 }
 
 static ssize_t
@@ -431,6 +464,8 @@ mmsearch_pid_store(struct kobject *kobj,
 
 	char **args;
 	args = argv_split(GFP_KERNEL, buf, &num);
+
+	memset(&result, 0, sizeof(struct search_result));
 
 	rcode = kstrtou64(args[0], 0, &pid_t);
 	if (rcode != 0) {
@@ -469,7 +504,7 @@ error_exit:
 	return count;
 }
 
-static struct kobj_attribute mmsearch_pid_attr = __ATTR_WO(mmsearch_pid);
+static struct kobj_attribute mmsearch_pid_attr = __ATTR_RW(mmsearch_pid);
 
 static struct attribute *attrs[] = {
 	&mmsearch_pid_attr.attr,
