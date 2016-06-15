@@ -62,6 +62,11 @@
   - docment mmsearch internals and the issues which it is intended to
     demonstrate
 
+* dsr_06152016
+
+  - modify mmsearch_pid to support reading of search result
+  - DONE
+
 
 
 

@@ -111,7 +111,10 @@ malloc operation 0 ptr val: 0x1e30010
 ```
 
 Identify the process id of the running application, then invoke the
-mmsearch-pid command line option.
+mmsearch-pid command line option from kva-tool.
+
+Alternatively you can send the pid number to the kernel module with
+this command 'echo <pid> > /sys/kernel/mmsearch_pid/mmsearch_pid'.
 
 ```
 root@hlinux-devel:/home/dsr/dsr_src/kernel-vulnerability-tests# kva-tool/kvat
@@ -136,8 +139,12 @@ On completion, check dmesg output...
 
 ```
 
-N.B.: If a kernel thread/process is passed in, the following error is
-reported:  
+Alternatively to view the search result you can read from the
+mmsearch_pid via the following command: 'cat
+/sys/kernel/mmsearch_pid/mmsearch_pid'
+
+If a kernel thread/process is passed in, the following error is
+reported:
 
 ```
 [ 5399.373518] mmsearch_pid_store: mmsearch pid: 3711  
